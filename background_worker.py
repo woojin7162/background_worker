@@ -33,11 +33,16 @@ def send_discord_message(content, db_id):
     except Exception as e:
         print("웹훅 전송 오류:", e)
 
+def save_discord_message_id(message_id):
+    collection.insert_one({
+        "discord_message_id": message_id,
+        "sent_at": datetime.utcnow() + timedelta(hours=9)
+    })
+
 def is_midnight():
     now = datetime.utcnow() + timedelta(hours=9)
     return now.hour == 0 and now.minute == 0
 
-from discord import Webhook
 
 def delete_discord_messages_at_midnight():
     webhook = Webhook.from_url(DISCORD_WEBHOOK_URL)
@@ -56,8 +61,10 @@ def process_scheduled_messages():
     now = datetime.utcnow() + timedelta(hours=9)
     messages = list(collection.find({"run_time": {"$lte": now}}))
     for msg in messages:
-        send_discord_message(msg["content"], msg["_id"])
-        # 전송 후 삭제하지 않고, discord_message_id만 저장
+        message_id = send_discord_message(msg["content"], msg["_id"])
+        if message_id:
+            save_discord_message_id(message_id)  # 메시지 ID만 저장
+        collection.delete_one({"_id": msg["_id"]})  # 예약 메시지는 삭제
 
 if __name__ == "__main__":
     print("[워커] 스케줄러 워커 시작")
