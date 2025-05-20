@@ -3,7 +3,7 @@ import time
 from datetime import datetime, timedelta
 from pymongo import MongoClient
 import requests
-from discord import Webhook, RequestsWebhookAdapter
+from discord import Webhook
 
 
 MONGODB_URI = os.environ.get("MONGODB_URI")
@@ -21,6 +21,7 @@ def send_discord_message(content, db_id):
         "content": content,
         "username": "교대근무 알리미"
     }
+
     try:
         resp = requests.post(url, json=payload, timeout=5)
         print("웹훅 응답:", resp.status_code, resp.text)
@@ -36,8 +37,10 @@ def is_midnight():
     now = datetime.utcnow() + timedelta(hours=9)
     return now.hour == 0 and now.minute == 0
 
+from discord import Webhook
+
 def delete_discord_messages_at_midnight():
-    webhook = Webhook.from_url(DISCORD_WEBHOOK_URL, adapter=RequestsWebhookAdapter())
+    webhook = Webhook.from_url(DISCORD_WEBHOOK_URL)
     messages = list(collection.find({"discord_message_id": {"$exists": True}}))
     for msg in messages:
         try:
