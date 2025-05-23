@@ -32,7 +32,7 @@ def process_scheduled_messages():
     now = datetime.utcnow() + timedelta(hours=9)
     messages = list(collection.find({"run_time": {"$lte": now}}))
     for msg in messages:
-        send_notilab_push(msg["content"], msg["_id"])
+        send_notilab_push(msg["content"])
         collection.delete_one({"_id": msg["_id"]})  
 
 if __name__ == "__main__":
