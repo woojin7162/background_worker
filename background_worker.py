@@ -33,37 +33,12 @@ def send_discord_message(content, db_id):
     except Exception as e:
         print("웹훅 전송 오류:", e)
 
-def save_discord_message_id(message_id):
-    collection.insert_one({
-        "discord_message_id": message_id,
-        "sent_at": datetime.utcnow() + timedelta(hours=9)
-    })
-
-def is_midnight():
-    now = datetime.utcnow() + timedelta(hours=9)
-    return now.hour == 0 and now.minute == 0
-
-
-def delete_discord_messages_at_midnight():
-    webhook = Webhook.from_url(DISCORD_WEBHOOK_URL)
-    messages = list(collection.find({"discord_message_id": {"$exists": True}}))
-    for msg in messages:
-        try:
-            webhook.delete_message(msg["discord_message_id"])
-            print(f"메시지 삭제 성공: {msg['discord_message_id']}")
-            collection.delete_one({"_id": msg["_id"]})
-        except Exception as e:
-            print("메시지 삭제 오류:", e)
-
-
 
 def process_scheduled_messages():
     now = datetime.utcnow() + timedelta(hours=9)
     messages = list(collection.find({"run_time": {"$lte": now}}))
     for msg in messages:
-        message_id = send_discord_message(msg["content"], msg["_id"])
-        if message_id:
-            save_discord_message_id(message_id)  # 메시지 ID만 저장
+        message_id = send_discord_message(msg["content"], msg["_id"]) 
         collection.delete_one({"_id": msg["_id"]})  # 예약 메시지는 삭제
 
 if __name__ == "__main__":
@@ -71,11 +46,4 @@ if __name__ == "__main__":
     already_deleted_today = False
     while True:
         process_scheduled_messages()
-        # 자정에 한 번만 실행
-        if is_midnight() and not already_deleted_today:
-            delete_discord_messages_at_midnight()
-            already_deleted_today = True
-        # 자정이 지나면 플래그 초기화
-        if not is_midnight():
-            already_deleted_today = False
         time.sleep(10)
