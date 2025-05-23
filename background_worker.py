@@ -25,11 +25,7 @@ def send_discord_message(content, db_id):
     try:
         resp = requests.post(url, json=payload, timeout=5)
         print("웹훅 응답:", resp.status_code, resp.text)
-        if resp.status_code == 200:
-            data = resp.json()
-            message_id = data.get("id")
-            # 메시지 ID를 DB에 저장
-            collection.update_one({"_id": db_id}, {"$set": {"discord_message_id": message_id}})
+        # 메시지 ID 저장 관련 코드 삭제됨
     except Exception as e:
         print("웹훅 전송 오류:", e)
 
@@ -38,8 +34,8 @@ def process_scheduled_messages():
     now = datetime.utcnow() + timedelta(hours=9)
     messages = list(collection.find({"run_time": {"$lte": now}}))
     for msg in messages:
-        message_id = send_discord_message(msg["content"], msg["_id"]) 
-        collection.delete_one({"_id": msg["_id"]})  # 예약 메시지는 삭제
+        send_discord_message(msg["content"], msg["_id"])
+        collection.delete_one({"_id": msg["_id"]})  
 
 if __name__ == "__main__":
     print("[워커] 스케줄러 워커 시작")
